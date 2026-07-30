@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block header %}Novo Prompt{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:700px;">
+    <h3>Criar Novo Prompt</h3>
+    <form method="POST">
+        <div class="form-group">
+            <label>Título</label>
+            <input type="text" name="title" required placeholder="Ex: Novidades do mercado financeiro">
+        </div>
+        <div class="form-group">
+            <label>Conteúdo do Prompt</label>
+            <textarea name="content" required placeholder="Descreva o que você quer... Ex: Me envie as principais notícias do mercado financeiro brasileiro, com foco em ações, câmbio e taxa de juros."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Tom / Estilo</label>
+            <select name="tone">
+                <option value="infografico">Infográfico</option>
+                <option value="resumo">Resumo</option>
+                <option value="newsletter">Newsletter</option>
+                <option value="analise">Análise</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Formato de Saída</label>
+            <select name="format">
+                <option value="html">HTML (email)</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="/prompts" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

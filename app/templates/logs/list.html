@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block header %}Logs de Execução{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>Histórico de Execuções</h3>
+    {% if logs %}
+    <table>
+        <thead>
+            <tr>
+                <th>Data/Hora</th>
+                <th>Prompt</th>
+                <th>Agendamento</th>
+                <th>Status</th>
+                <th>Duração</th>
+                <th>Disparado por</th>
+                <th>Erro</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.created_at[:16] }}</td>
+                <td>{{ log.prompt_title[:35] }}</td>
+                <td style="font-size:13px;">{{ log.schedule_desc[:30] if log.schedule_desc else 'Manual' }}</td>
+                <td><span class="badge badge-{{ 'success' if log.status == 'success' else 'error' }}">{{ log.status }}</span></td>
+                <td>{{ (log.duration_ms / 1000)|round(1) if log.duration_ms else '-' }}s</td>
+                <td><span class="badge badge-info">{{ log.triggered_by }}</span></td>
+                <td style="font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted);">{{ log.error_message or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><p>Nenhum log de execução encontrado.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

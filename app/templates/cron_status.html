@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block header %}Status do Cron{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <span style="color:var(--muted); font-size:14px;">{{ entries|length }} entrada(s) no crontab</span>
+    <form method="POST" action="/cron/sync" class="inline-form">
+        <button class="btn btn-primary">Sincronizar Cron</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Entradas Atuais do Crontab (do app)</h3>
+    {% if entries %}
+    <table>
+        <thead>
+            <tr>
+                <th>Comentário</th>
+                <th>Agendamento</th>
+                <th>Comando</th>
+                <th>Ativo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in entries %}
+            <tr>
+                <td style="font-size:13px;">{{ e.comment }}</td>
+                <td><code style="font-size:12px;">{{ e.schedule }}</code></td>
+                <td style="font-size:12px; color:var(--muted); max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.command }}</td>
+                <td><span class="badge badge-{{ 'success' if e.enabled else 'error' }}">{{ 'Sim' if e.enabled else 'Não' }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><p>Nenhuma entrada do app no crontab.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

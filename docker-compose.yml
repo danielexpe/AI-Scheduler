@@ -1,0 +1,39 @@
+services:
+  web:
+    build: .
+    container_name: ai-scheduler-web
+    ports:
+      - "${APP_PORT:-5000}:5000"
+    env_file:
+      - .env
+    environment:
+      - CRON_MODE=docker
+    volumes:
+      - scheduler_data:/app/data
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+
+  cron:
+    build: .
+    container_name: ai-scheduler-cron
+    env_file:
+      - .env
+    environment:
+      - CRON_MODE=docker
+    volumes:
+      - scheduler_data:/app/data
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    entrypoint: ["/app/scripts/entrypoint-cron.sh"]
+    depends_on:
+      web:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "pgrep", "supercronic"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  scheduler_data:

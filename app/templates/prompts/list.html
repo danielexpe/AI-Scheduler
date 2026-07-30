@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block header %}Prompts{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <span style="color:var(--muted); font-size:14px;">{{ prompts|length }} prompt(s)</span>
+    <a href="/prompts/create" class="btn btn-primary">+ Novo Prompt</a>
+</div>
+
+{% if prompts %}
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Tom</th>
+                <th>Ativo</th>
+                <th>Criado em</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prompt in prompts %}
+            <tr>
+                <td>{{ prompt.title }}</td>
+                <td><span class="badge badge-info">{{ prompt.tone }}</span></td>
+                <td>
+                    <span class="badge badge-{{ 'success' if prompt.active else 'error' }}">
+                        {{ 'Ativo' if prompt.active else 'Inativo' }}
+                    </span>
+                </td>
+                <td>{{ prompt.created_at[:10] }}</td>
+                <td class="actions">
+                    <button class="btn btn-success btn-sm" onclick="runPrompt({{ prompt.id }})">Executar</button>
+                    <a href="/prompts/{{ prompt.id }}/edit" class="btn btn-secondary btn-sm">Editar</a>
+                    <form method="POST" action="/prompts/{{ prompt.id }}/delete" class="inline-form" onsubmit="return confirmDelete('Deletar este prompt?')">
+                        <button class="btn btn-danger btn-sm">Deletar</button>
+                    </form>
+                    <form id="run-form-{{ prompt.id }}" method="POST" action="/prompts/{{ prompt.id }}/run" class="inline-form" style="display:none;">
+                        <input type="hidden" name="email_to" value="">
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card empty-state">
+    <p>Nenhum prompt cadastrado.</p>
+    <a href="/prompts/create" class="btn btn-primary">Criar Primeiro Prompt</a>
+</div>
+{% endif %}
+{% endblock %}

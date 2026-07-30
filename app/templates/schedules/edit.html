@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block header %}Editar Agendamento{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:700px;">
+    <h3>Editar Agendamento #{{ schedule.id }}</h3>
+    <form method="POST">
+        <div class="form-group">
+            <label>Prompt</label>
+            <select name="prompt_id" required>
+                {% for p in prompts %}
+                <option value="{{ p.id }}" {% if p.id == schedule.prompt_id %}selected{% endif %}>{{ p.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Descrição</label>
+            <input type="text" name="description" required value="{{ schedule.description }}">
+        </div>
+
+        {% set parts = schedule.cron_expr.split() %}
+        <label style="font-size:13px; color:var(--muted); margin-bottom:5px; display:block;">Construtor de Cron</label>
+        <div class="cron-builder">
+            <div class="form-group">
+                <label>Minuto</label>
+                <input type="text" name="minute" value="{{ parts[0] if parts|length > 0 else '*' }}">
+            </div>
+            <div class="form-group">
+                <label>Hora</label>
+                <input type="text" name="hour" value="{{ parts[1] if parts|length > 1 else '*' }}">
+            </div>
+            <div class="form-group">
+                <label>Dia do mês</label>
+                <input type="text" name="day" value="{{ parts[2] if parts|length > 2 else '*' }}">
+            </div>
+            <div class="form-group">
+                <label>Mês</label>
+                <input type="text" name="month" value="{{ parts[3] if parts|length > 3 else '*' }}">
+            </div>
+            <div class="form-group">
+                <label>Dia da semana</label>
+                <input type="text" name="weekday" value="{{ parts[4] if parts|length > 4 else '*' }}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Email Destino</label>
+            <input type="email" name="email_to" required value="{{ schedule.email_to }}">
+        </div>
+
+        <div class="form-group">
+            <label>Ativo</label>
+            <select name="active">
+                <option value="1" {% if schedule.active %}selected{% endif %}>Sim</option>
+                <option value="0" {% if not schedule.active %}selected{% endif %}>Não</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="/schedules" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
