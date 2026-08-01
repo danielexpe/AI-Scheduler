@@ -39,6 +39,10 @@ echo ">>> Parando containers antigos..."
 docker compose down 2>/dev/null || true
 
 echo ""
+echo ">>> Corrigindo permissoes do diretorio data/..."
+chown -R 1000:1000 data/ 2>/dev/null || true
+
+echo ""
 echo ">>> Build e deploy..."
 docker compose build --no-cache
 docker compose up -d
