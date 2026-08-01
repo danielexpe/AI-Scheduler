@@ -5,7 +5,7 @@
 <div class="toolbar">
     <span style="color:var(--muted); font-size:14px;">{{ schedules|length }} agendamento(s)</span>
     <div>
-        <form method="POST" action="/cron/sync" class="inline-form" style="margin-right:8px;">
+        <form method="POST" action="/cron/sync" class="inline-form">
             <button class="btn btn-success btn-sm">Sincronizar Cron</button>
         </form>
         <a href="/schedules/create" class="btn btn-primary">+ Novo Agendamento</a>
@@ -14,7 +14,8 @@
 
 {% if schedules %}
 <div class="card">
-    <table>
+    <div class="table-wrapper">
+    <table class="responsive">
         <thead>
             <tr>
                 <th>Prompt</th>
@@ -29,11 +30,11 @@
         <tbody>
             {% for s in schedules %}
             <tr>
-                <td>{{ s.prompt_title[:30] }}</td>
-                <td>{{ s.description[:35] }}</td>
-                <td><code style="font-size:12px; color:var(--muted);">{{ s.cron_expr }}</code></td>
-                <td style="font-size:13px;">{{ s.email_to[:25] }}</td>
-                <td>
+                <td data-label="Prompt">{{ s.prompt_title[:30] }}</td>
+                <td data-label="Descrição">{{ s.description[:35] }}</td>
+                <td data-label="Cron"><code style="font-size:12px; color:var(--muted);">{{ s.cron_expr }}</code></td>
+                <td data-label="Email" style="font-size:13px;">{{ s.email_to[:25] }}</td>
+                <td data-label="Ativo">
                     <form method="POST" action="/schedules/{{ s.id }}/toggle" class="inline-form">
                         <label class="toggle-switch">
                             <input type="checkbox" {% if s.active %}checked{% endif %} onchange="this.form.submit()">
@@ -41,8 +42,8 @@
                         </label>
                     </form>
                 </td>
-                <td style="font-size:13px; color:var(--muted);">{{ s.last_run_at[:16] if s.last_run_at else 'Nunca' }}</td>
-                <td class="actions">
+                <td data-label="Última Exec" style="font-size:13px; color:var(--muted);">{{ s.last_run_at[:16] if s.last_run_at else 'Nunca' }}</td>
+                <td data-label="Ações" class="actions">
                     <a href="/schedules/{{ s.id }}/edit" class="btn btn-secondary btn-sm">Editar</a>
                     <form method="POST" action="/schedules/{{ s.id }}/delete" class="inline-form" onsubmit="return confirmDelete('Deletar este agendamento?')">
                         <button class="btn btn-danger btn-sm">Deletar</button>
@@ -52,6 +53,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% else %}
 <div class="card empty-state">

@@ -4,12 +4,15 @@
 {% block content %}
 <div class="toolbar">
     <span style="color:var(--muted); font-size:14px;">{{ prompts|length }} prompt(s)</span>
-    <a href="/prompts/create" class="btn btn-primary">+ Novo Prompt</a>
+    <div>
+        <a href="/prompts/create" class="btn btn-primary">+ Novo Prompt</a>
+    </div>
 </div>
 
 {% if prompts %}
 <div class="card">
-    <table>
+    <div class="table-wrapper">
+    <table class="responsive">
         <thead>
             <tr>
                 <th>Título</th>
@@ -22,15 +25,15 @@
         <tbody>
             {% for prompt in prompts %}
             <tr>
-                <td>{{ prompt.title }}</td>
-                <td><span class="badge badge-info">{{ prompt.tone }}</span></td>
-                <td>
+                <td data-label="Título">{{ prompt.title }}</td>
+                <td data-label="Tom"><span class="badge badge-info">{{ prompt.tone }}</span></td>
+                <td data-label="Ativo">
                     <span class="badge badge-{{ 'success' if prompt.active else 'error' }}">
                         {{ 'Ativo' if prompt.active else 'Inativo' }}
                     </span>
                 </td>
-                <td>{{ prompt.created_at[:10] }}</td>
-                <td class="actions">
+                <td data-label="Criado em">{{ prompt.created_at[:10] }}</td>
+                <td data-label="Ações" class="actions">
                     <button class="btn btn-success btn-sm" onclick="runPrompt({{ prompt.id }})">Executar</button>
                     <a href="/prompts/{{ prompt.id }}/edit" class="btn btn-secondary btn-sm">Editar</a>
                     <form method="POST" action="/prompts/{{ prompt.id }}/delete" class="inline-form" onsubmit="return confirmDelete('Deletar este prompt?')">
@@ -44,6 +47,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% else %}
 <div class="card empty-state">

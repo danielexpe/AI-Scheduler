@@ -15,6 +15,13 @@
             --green: #2ecc71;
             --yellow: #f39c12;
             --border: #2a2a4a;
+            --radius: 8px;
+            --radius-sm: 6px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --transition: 0.25s ease;
+            --sidebar-width: 220px;
+            --header-height: 56px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -24,17 +31,61 @@
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
+        }
+
+        .app-layout {
             display: flex;
+            min-height: 100vh;
+        }
+
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 200;
+            position: fixed;
+            top: 12px;
+            left: 12px;
+        }
+
+        .hamburger span {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: var(--text);
+            border-radius: 2px;
+            transition: var(--transition);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 98;
+            transition: opacity var(--transition);
+            opacity: 0;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
         }
 
         .sidebar {
-            width: 220px;
+            width: var(--sidebar-width);
             background: var(--card);
             padding: 20px 0;
             min-height: 100vh;
             border-right: 1px solid var(--border);
             position: fixed;
             top: 0; left: 0; bottom: 0;
+            z-index: 99;
+            transition: transform var(--transition);
         }
 
         .sidebar h2 {
@@ -51,7 +102,7 @@
             color: var(--text);
             text-decoration: none;
             font-size: 14px;
-            transition: background 0.2s;
+            transition: background var(--transition), color var(--transition), padding-left var(--transition);
         }
 
         .sidebar nav a:hover, .sidebar nav a.active {
@@ -60,9 +111,16 @@
         }
 
         .main {
-            margin-left: 220px;
+            margin-left: var(--sidebar-width);
             flex: 1;
             padding: 30px;
+            transition: margin-left var(--transition);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .header {
@@ -84,16 +142,17 @@
         .card {
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--radius);
             padding: 20px;
             margin-bottom: 20px;
+            box-shadow: var(--shadow);
         }
 
         .card h3 { color: var(--text); margin-bottom: 15px; font-size: 16px; }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -101,9 +160,16 @@
         .stat-card {
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--radius);
             padding: 15px;
             text-align: center;
+            box-shadow: var(--shadow);
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
         }
 
         .stat-card .value { font-size: 28px; font-weight: bold; color: var(--red); }
@@ -134,16 +200,17 @@
         .btn {
             display: inline-block;
             padding: 8px 16px;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             border: none;
             text-decoration: none;
-            transition: opacity 0.2s;
+            transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
         }
 
-        .btn:hover { opacity: 0.85; }
+        .btn:hover { opacity: 0.85; transform: translateY(-1px); box-shadow: var(--shadow); }
+        .btn:active { transform: translateY(0); }
 
         .btn-primary { background: var(--red); color: #fff; }
         .btn-secondary { background: var(--accent); color: var(--text); }
@@ -169,10 +236,11 @@
             padding: 10px;
             background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             color: var(--text);
             font-size: 14px;
             font-family: inherit;
+            transition: border-color var(--transition);
         }
         .form-group textarea { min-height: 120px; resize: vertical; }
         .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
@@ -190,7 +258,7 @@
 
         .alert {
             padding: 12px 16px;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             margin-bottom: 15px;
             font-size: 14px;
         }
@@ -206,6 +274,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .inline-form { display: inline; }
@@ -230,42 +300,251 @@
             background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center;
         }
         .modal-overlay.active { display: flex; }
-        .modal { background: var(--card); border-radius: 8px; padding: 24px; min-width: 360px; }
+        .modal {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            margin: 0 16px;
+            box-shadow: var(--shadow-lg);
+        }
         .modal h3 { margin-bottom: 15px; }
+
+        .login-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .login-box h2 {
+            text-align: center;
+            color: var(--red);
+            margin-bottom: 30px;
+            font-size: 20px;
+        }
+
+        .login-box .card {
+            padding: 30px;
+        }
+
+        .login-box .btn {
+            width: 100%;
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 767px) {
+            .hamburger { display: flex; }
+
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: none;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: var(--shadow-lg);
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 20px 16px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                margin-top: 8px;
+            }
+
+            .header h1 { font-size: 20px; }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .stat-card { padding: 12px 8px; }
+            .stat-card .value { font-size: 22px; }
+            .stat-card .label { font-size: 11px; }
+
+            table.responsive thead { display: none; }
+            table.responsive tbody,
+            table.responsive tr,
+            table.responsive td { display: block; }
+
+            table.responsive tr {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                margin-bottom: 12px;
+                padding: 12px;
+                box-shadow: var(--shadow);
+            }
+
+            table.responsive tr:hover td { background: transparent; }
+
+            table.responsive td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 6px 0;
+                border: none;
+                font-size: 13px;
+            }
+
+            table.responsive td::before {
+                content: attr(data-label);
+                font-size: 11px;
+                color: var(--muted);
+                text-transform: uppercase;
+                font-weight: 600;
+                margin-right: 10px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            table.responsive td .actions {
+                justify-content: flex-end;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            .actions { flex-wrap: wrap; }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .toolbar > div {
+                display: flex;
+                gap: 6px;
+            }
+
+            .cron-builder .form-group {
+                flex: 1 1 calc(50% - 5px);
+                min-width: unset;
+            }
+
+            .form-group select,
+            .form-group input,
+            .form-group textarea {
+                font-size: 16px;
+            }
+
+            .modal {
+                width: 90%;
+                max-width: 320px;
+                margin: 0 12px;
+                padding: 20px;
+            }
+
+            .login-box {
+                padding: 16px;
+            }
+
+            .login-box .card {
+                padding: 24px 20px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .stat-card .value { font-size: 20px; }
+
+            .header h1 { font-size: 18px; }
+
+            .main { padding: 16px 12px; }
+        }
+
+        @media (min-width: 768px) {
+            .hamburger { display: none; }
+            .sidebar-overlay { display: none !important; }
+
+            .sidebar nav a:hover {
+                padding-left: 24px;
+            }
+
+            table.responsive td::before {
+                content: none;
+            }
+        }
+
+        {% block extra_css %}{% endblock %}
     </style>
 </head>
-<body>
-    <aside class="sidebar">
-        <h2>AI Mail Scheduler</h2>
-        <nav>
-            <a href="/" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
-            <a href="/prompts" class="{% if request.path.startswith('/prompts') %}active{% endif %}">Prompts</a>
-            <a href="/schedules" class="{% if request.path.startswith('/schedules') %}active{% endif %}">Agendamentos</a>
-            <a href="/logs" class="{% if request.path.startswith('/logs') %}active{% endif %}">Logs</a>
-            <a href="/cron/status" class="{% if request.path.startswith('/cron') %}active{% endif %}">Cron</a>
-        </nav>
-    </aside>
-    <main class="main">
-        <div class="header">
-            <h1>{% block header %}Dashboard{% endblock %}</h1>
-            <div class="user-info">
-                {{ current_user.username }}
-                <a href="/auth/logout">Sair</a>
+<body class="{% block body_class %}{% endblock %}">
+    {% if request.path.startswith('/auth') %}
+        {% block auth_content %}{% endblock %}
+    {% else %}
+    <div class="app-layout">
+        <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+
+        <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+        <aside class="sidebar" id="sidebar">
+            <h2>AI Mail Scheduler</h2>
+            <nav>
+                <a href="/" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
+                <a href="/prompts" class="{% if request.path.startswith('/prompts') %}active{% endif %}">Prompts</a>
+                <a href="/schedules" class="{% if request.path.startswith('/schedules') %}active{% endif %}">Agendamentos</a>
+                <a href="/logs" class="{% if request.path.startswith('/logs') %}active{% endif %}">Logs</a>
+                <a href="/cron/status" class="{% if request.path.startswith('/cron') %}active{% endif %}">Cron</a>
+            </nav>
+        </aside>
+
+        <main class="main">
+            <div class="header">
+                <h1>{% block header %}Dashboard{% endblock %}</h1>
+                <div class="user-info">
+                    {{ current_user.username }}
+                    <a href="/auth/logout">Sair</a>
+                </div>
             </div>
-        </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
 
-        {% block content %}{% endblock %}
-    </main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% endif %}
 
     <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.querySelector('.sidebar-overlay').classList.toggle('active');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.querySelector('.sidebar-overlay').classList.remove('active');
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('#sidebar nav a').forEach(function(link) {
+                link.addEventListener('click', closeSidebar);
+            });
+        });
         function confirmDelete(msg) { return confirm(msg || 'Tem certeza?'); }
         function runPrompt(id) {
             var email = prompt('Email de destino:');
