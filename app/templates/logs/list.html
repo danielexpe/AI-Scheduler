@@ -22,7 +22,7 @@
             {% for log in logs %}
             <tr>
                 <td data-label="Data/Hora">{{ log.created_at[:16] }}</td>
-                <td data-label="Prompt">{{ log.prompt_title[:35] }}</td>
+                <td data-label="Prompt">{{ log.prompt_title[:35] if log.prompt_title else '-' }}</td>
                 <td data-label="Agendamento" style="font-size:13px;">{{ log.schedule_desc[:30] if log.schedule_desc else 'Manual' }}</td>
                 <td data-label="Status"><span class="badge badge-{{ 'success' if log.status == 'success' else 'error' }}">{{ log.status }}</span></td>
                 <td data-label="Duração">{{ (log.duration_ms / 1000)|round(1) if log.duration_ms else '-' }}s</td>

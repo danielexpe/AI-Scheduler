@@ -30,7 +30,7 @@
         <tbody>
             {% for s in schedules %}
             <tr>
-                <td data-label="Prompt">{{ s.prompt_title[:30] }}</td>
+                <td data-label="Prompt">{{ s.prompt_title[:30] if s.prompt_title else 'Tarefa' }}</td>
                 <td data-label="Descrição">{{ s.description[:35] }}</td>
                 <td data-label="Cron"><code style="font-size:12px; color:var(--muted);">{{ s.cron_expr }}</code></td>
                 <td data-label="Email" style="font-size:13px;">{{ s.email_to[:25] }}</td>

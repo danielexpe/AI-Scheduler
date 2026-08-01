@@ -62,11 +62,16 @@ class TestModelsBase(unittest.TestCase):
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS schedules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                prompt_id INTEGER NOT NULL, cron_expr TEXT NOT NULL,
+                prompt_id INTEGER, cron_expr TEXT NOT NULL,
                 description TEXT, email_to TEXT NOT NULL,
                 active BOOLEAN DEFAULT 1, last_run_at DATETIME,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                schedule_type TEXT DEFAULT 'ai',
+                static_content TEXT,
+                static_is_html INTEGER DEFAULT 0,
+                static_subject TEXT,
+                command_text TEXT,
                 FOREIGN KEY (prompt_id) REFERENCES prompts(id));
             CREATE TABLE IF NOT EXISTS execution_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

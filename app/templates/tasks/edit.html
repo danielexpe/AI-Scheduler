@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block header %}Editar Tarefa{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:700px;">
+    <h3>Editar Tarefa #{{ task.id }}</h3>
+    <form method="POST">
+        <div class="form-group">
+            <label>Tipo de Tarefa</label>
+            <select name="task_type" id="task_type" required onchange="toggleTaskFields()">
+                <option value="static" {% if task.schedule_type == 'static' %}selected{% endif %}>Conteudo Estatico</option>
+                <option value="command" {% if task.schedule_type == 'command' %}selected{% endif %}>Comando Linux</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Descricao</label>
+            <input type="text" name="description" required value="{{ task.description or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label>Email Destino</label>
+            <input type="email" name="email_to" required value="{{ task.email_to }}">
+        </div>
+
+        <label style="font-size:13px; color:var(--muted); margin-bottom:5px; display:block;">Construtor de Cron</label>
+        <div class="cron-builder">
+            {% set parts = (task.cron_expr or '* * * * *').split() %}
+            <div class="form-group"><label>Minuto</label><input type="text" name="minute" value="{{ parts[0] if parts|length > 0 else '*' }}"></div>
+            <div class="form-group"><label>Hora</label><input type="text" name="hour" value="{{ parts[1] if parts|length > 1 else '*' }}"></div>
+            <div class="form-group"><label>Dia</label><input type="text" name="day" value="{{ parts[2] if parts|length > 2 else '*' }}"></div>
+            <div class="form-group"><label>Mes</label><input type="text" name="month" value="{{ parts[3] if parts|length > 3 else '*' }}"></div>
+            <div class="form-group"><label>Dia Semana</label><input type="text" name="weekday" value="{{ parts[4] if parts|length > 4 else '*' }}"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Ativo</label>
+            <select name="active">
+                <option value="1" {% if task.active %}selected{% endif %}>Sim</option>
+                <option value="0" {% if not task.active %}selected{% endif %}>Nao</option>
+            </select>
+        </div>
+
+        <div id="fields_static" style="{% if task.schedule_type == 'command' %}display:none;{% endif %}">
+            <div class="form-group">
+                <label>Assunto do Email</label>
+                <input type="text" name="static_subject" value="{{ task.static_subject or '' }}">
+            </div>
+            <div class="form-group">
+                <label>
+                    Formato:
+                    <select name="static_is_html" style="width:auto;display:inline;margin-left:10px;">
+                        <option value="0" {% if not task.static_is_html %}selected{% endif %}>Texto Simples</option>
+                        <option value="1" {% if task.static_is_html %}selected{% endif %}>HTML</option>
+                    </select>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Conteudo</label>
+                <textarea name="static_content" rows="10">{{ task.static_content or '' }}</textarea>
+            </div>
+        </div>
+
+        <div id="fields_command" style="{% if task.schedule_type != 'command' %}display:none;{% endif %}">
+            <div class="form-group">
+                <label>Comando Linux</label>
+                <textarea name="command_text" rows="4">{{ task.command_text or '' }}</textarea>
+                <small style="color:var(--red);">Aviso: o comando sera executado no container cron. Nao inclua senhas ou tokens. A saida sera enviada por email.</small>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="/tasks" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleTaskFields() {
+    var type = document.getElementById('task_type').value;
+    document.getElementById('fields_static').style.display = (type === 'static') ? 'block' : 'none';
+    document.getElementById('fields_command').style.display = (type === 'command') ? 'block' : 'none';
+}
+</script>
+{% endblock %}

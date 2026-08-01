@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block header %}Tarefas{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <span style="color:var(--muted); font-size:14px;">{{ tasks|length }} tarefa(s)</span>
+    <a href="/tasks/create" class="btn btn-primary">+ Nova Tarefa</a>
+</div>
+
+{% if tasks %}
+<div class="card">
+    <div class="table-wrapper">
+    <table class="responsive">
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Descricao</th>
+                <th>Cron</th>
+                <th>Email</th>
+                <th>Ativo</th>
+                <th>Acoes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tasks %}
+            <tr>
+                <td data-label="Tipo">
+                    {% if t.schedule_type == 'static' %}
+                    <span class="badge badge-info">Estatico</span>
+                    {% elif t.schedule_type == 'command' %}
+                    <span class="badge badge-warning">Comando</span>
+                    {% else %}
+                    <span class="badge">{{ t.schedule_type }}</span>
+                    {% endif %}
+                </td>
+                <td data-label="Descricao">{{ t.description }}</td>
+                <td data-label="Cron"><code>{{ t.cron_expr }}</code></td>
+                <td data-label="Email">{{ t.email_to }}</td>
+                <td data-label="Ativo">
+                    <span class="badge badge-{{ 'success' if t.active else 'error' }}">
+                        {{ 'Ativo' if t.active else 'Inativo' }}
+                    </span>
+                </td>
+                <td data-label="Acoes" class="actions">
+                    <form method="POST" action="/tasks/{{ t.id }}/run" class="inline-form">
+                        <button class="btn btn-success btn-sm">Executar</button>
+                    </form>
+                    <a href="/tasks/{{ t.id }}/edit" class="btn btn-secondary btn-sm">Editar</a>
+                    <form method="POST" action="/tasks/{{ t.id }}/delete" class="inline-form" onsubmit="return confirmDelete('Deletar esta tarefa?')">
+                        <button class="btn btn-danger btn-sm">Deletar</button>
+                    </form>
+                    <form method="POST" action="/tasks/{{ t.id }}/toggle" class="inline-form">
+                        <button class="btn btn-sm" style="background:var(--accent);">{{ 'Desativar' if t.active else 'Ativar' }}</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% else %}
+<div class="card empty-state">
+    <p>Nenhuma tarefa cadastrada.</p>
+    <a href="/tasks/create" class="btn btn-primary">Criar Primeira Tarefa</a>
+</div>
+{% endif %}
+{% endblock %}

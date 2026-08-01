@@ -57,7 +57,7 @@ def init_db(app):
 
         CREATE TABLE IF NOT EXISTS schedules (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            prompt_id INTEGER NOT NULL,
+            prompt_id INTEGER,
             cron_expr TEXT NOT NULL,
             description TEXT,
             email_to TEXT NOT NULL,
@@ -65,6 +65,11 @@ def init_db(app):
             last_run_at DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            schedule_type TEXT DEFAULT 'ai',
+            static_content TEXT,
+            static_is_html INTEGER DEFAULT 0,
+            static_subject TEXT,
+            command_text TEXT,
             FOREIGN KEY (prompt_id) REFERENCES prompts(id)
         );
 
@@ -85,6 +90,27 @@ def init_db(app):
 
         INSERT OR IGNORE INTO schema_version (version) VALUES (1);
     """)
+
+    try:
+        conn.execute("ALTER TABLE schedules ADD COLUMN schedule_type TEXT DEFAULT 'ai'")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE schedules ADD COLUMN static_content TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE schedules ADD COLUMN static_is_html INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE schedules ADD COLUMN static_subject TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE schedules ADD COLUMN command_text TEXT")
+    except sqlite3.OperationalError:
+        pass
 
     conn.commit()
     conn.close()
@@ -190,7 +216,7 @@ class Schedule:
         return query("""
             SELECT s.*, p.title as prompt_title
             FROM schedules s
-            JOIN prompts p ON s.prompt_id = p.id
+            LEFT JOIN prompts p ON s.prompt_id = p.id
             ORDER BY s.created_at DESC
         """)
 
@@ -200,25 +226,64 @@ class Schedule:
             SELECT s.*, p.title as prompt_title, p.content as prompt_content,
                    p.tone as prompt_tone, p.format as prompt_format
             FROM schedules s
-            JOIN prompts p ON s.prompt_id = p.id
+            LEFT JOIN prompts p ON s.prompt_id = p.id
             WHERE s.id = ?
         """, (schedule_id,), one=True)
 
     @staticmethod
-    def create(prompt_id, cron_expr, description, email_to):
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return execute(
-            "INSERT INTO schedules (prompt_id, cron_expr, description, email_to, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (prompt_id, cron_expr, description, email_to, now, now)
-        )
+    def get_tasks():
+        return query("""
+            SELECT s.*
+            FROM schedules s
+            WHERE s.schedule_type IN ('static', 'command')
+            ORDER BY s.created_at DESC
+        """)
 
     @staticmethod
-    def update(schedule_id, prompt_id, cron_expr, description, email_to, active):
+    def create(prompt_id, cron_expr, description, email_to,
+               schedule_type="ai", static_content=None, static_is_html=0,
+               static_subject=None, command_text=None):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        execute(
-            "UPDATE schedules SET prompt_id=?, cron_expr=?, description=?, email_to=?, active=?, updated_at=? WHERE id=?",
-            (prompt_id, cron_expr, description, email_to, active, now, schedule_id)
-        )
+        if prompt_id is None:
+            prompt_id = 0
+        db = get_db()
+        db.execute("PRAGMA foreign_keys=OFF")
+        try:
+            rowid = db.execute(
+                "INSERT INTO schedules (prompt_id, cron_expr, description, email_to,"
+                " schedule_type, static_content, static_is_html, static_subject, command_text,"
+                " created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (prompt_id, cron_expr, description, email_to, schedule_type,
+                 static_content, static_is_html, static_subject, command_text, now, now)
+            ).lastrowid
+            db.commit()
+        finally:
+            db.execute("PRAGMA foreign_keys=ON")
+        return rowid
+
+    @staticmethod
+    def update(schedule_id, prompt_id, cron_expr, description, email_to, active,
+               schedule_type=None, static_content=None, static_is_html=None,
+               static_subject=None, command_text=None):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if prompt_id is None:
+            prompt_id = 0
+        bypass_fk = (prompt_id == 0)
+        db = get_db()
+        if bypass_fk:
+            db.execute("PRAGMA foreign_keys=OFF")
+        try:
+            db.execute(
+                "UPDATE schedules SET prompt_id=?, cron_expr=?, description=?, email_to=?,"
+                " active=?, schedule_type=?, static_content=?, static_is_html=?,"
+                " static_subject=?, command_text=?, updated_at=? WHERE id=?",
+                (prompt_id, cron_expr, description, email_to, active, schedule_type,
+                 static_content, static_is_html, static_subject, command_text, now, schedule_id)
+            )
+            db.commit()
+        finally:
+            if bypass_fk:
+                db.execute("PRAGMA foreign_keys=ON")
 
     @staticmethod
     def delete(schedule_id):
@@ -243,8 +308,8 @@ class Schedule:
             SELECT s.*, p.title as prompt_title, p.content as prompt_content,
                    p.tone as prompt_tone, p.format as prompt_format
             FROM schedules s
-            JOIN prompts p ON s.prompt_id = p.id
-            WHERE s.active = 1 AND p.active = 1
+            LEFT JOIN prompts p ON s.prompt_id = p.id
+            WHERE s.active = 1
         """)
 
 
@@ -263,7 +328,7 @@ class ExecutionLog:
                 SELECT el.*, s.description as schedule_desc, p.title as prompt_title
                 FROM execution_logs el
                 JOIN schedules s ON el.schedule_id = s.id
-                JOIN prompts p ON s.prompt_id = p.id
+                LEFT JOIN prompts p ON s.prompt_id = p.id
                 WHERE el.schedule_id = ?
                 ORDER BY el.created_at DESC
                 LIMIT ?
@@ -272,7 +337,7 @@ class ExecutionLog:
             SELECT el.*, s.description as schedule_desc, p.title as prompt_title
             FROM execution_logs el
             JOIN schedules s ON el.schedule_id = s.id
-            JOIN prompts p ON s.prompt_id = p.id
+            LEFT JOIN prompts p ON s.prompt_id = p.id
             ORDER BY el.created_at DESC
             LIMIT ?
         """, (limit,))
@@ -285,6 +350,7 @@ class ExecutionLog:
             "active_prompts": query("SELECT COUNT(*) as cnt FROM prompts WHERE active=1", one=True)["cnt"],
             "total_schedules": query("SELECT COUNT(*) as cnt FROM schedules", one=True)["cnt"],
             "active_schedules": query("SELECT COUNT(*) as cnt FROM schedules WHERE active=1", one=True)["cnt"],
+            "active_tasks": query("SELECT COUNT(*) as cnt FROM schedules WHERE active=1 AND schedule_type != 'ai'", one=True)["cnt"],
             "executions_today": query(
                 "SELECT COUNT(*) as cnt FROM execution_logs WHERE date(created_at) = ?", (today,), one=True
             )["cnt"],

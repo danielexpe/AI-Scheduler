@@ -12,6 +12,10 @@
         <div class="label">Agendamentos Ativos</div>
     </div>
     <div class="stat-card">
+        <div class="value">{{ stats.active_tasks }}</div>
+        <div class="label">Tarefas Ativas</div>
+    </div>
+    <div class="stat-card">
         <div class="value">{{ stats.executions_today }}</div>
         <div class="label">Execuções Hoje</div>
     </div>
@@ -39,7 +43,7 @@
             {% for log in logs %}
             <tr>
                 <td data-label="Data/Hora">{{ log.created_at[:16] }}</td>
-                <td data-label="Prompt">{{ log.prompt_title[:40] }}</td>
+                <td data-label="Prompt">{{ log.prompt_title[:40] if log.prompt_title else '-' }}</td>
                 <td data-label="Status"><span class="badge badge-{{ 'success' if log.status == 'success' else 'error' }}">{{ log.status }}</span></td>
                 <td data-label="Duração">{{ (log.duration_ms / 1000)|round(1) if log.duration_ms else '-' }}s</td>
                 <td data-label="Disparado por"><span class="badge badge-info">{{ log.triggered_by }}</span></td>
