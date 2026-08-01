@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import logging
+import subprocess
 from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -12,11 +13,103 @@ from app.email_sender import send_email
 
 logger = logging.getLogger(__name__)
 
+EMAIL_WRAPPER_SIMPLE = """<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background-color:#1a1a2e;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#1a1a2e;"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0">
+<tr><td style="padding:20px;text-align:center;background-color:#16213e;">
+<h1 style="color:#e94560;margin:0;font-size:24px;">AI Mail Scheduler</h1>
+<p style="color:#a0a0b0;margin:5px 0 0 0;font-size:12px;">Gerado em {date}</p>
+</td></tr>
+<tr><td style="padding:20px;background-color:#0f3460;color:#e0e0e0;">
+{body}
+</td></tr>
+<tr><td style="padding:15px;text-align:center;background-color:#16213e;">
+<p style="color:#a0a0b0;font-size:11px;margin:0;">Email automatico pelo AI Mail Scheduler.</p>
+</td></tr>
+</table></td></tr></table></body></html>"""
+
+
+def _run_static_task(schedule):
+    started = time.time()
+    content = schedule["static_content"] or ""
+    is_html = schedule["static_is_html"]
+    subject = schedule["static_subject"] or schedule["description"] or "Tarefa"
+
+    if not is_html:
+        body = content.replace("\n", "<br>\n")
+    else:
+        body = content
+
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    wrapped = EMAIL_WRAPPER_SIMPLE.format(date=now, body=body)
+
+    duration = int((time.time() - started) * 1000)
+    success, email_error = send_email(schedule["email_to"], subject, wrapped)
+    if not success:
+        logger.error("Static task falhou: %s", email_error)
+        ExecutionLog.create(schedule["id"], "error", f"Email: {email_error}", duration, "cron")
+        return duration, None, f"Falha ao enviar email: {email_error}"
+
+    logger.info("Static task OK: %d chars em %dms", len(body), duration)
+    return duration, wrapped, None
+
+
+def _run_command_task(schedule):
+    started = time.time()
+    cmd = schedule["command_text"] or ""
+    logger.info("Executando comando: %s", cmd[:80])
+
+    try:
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, timeout=30
+        )
+    except subprocess.TimeoutExpired:
+        duration = int((time.time() - started) * 1000)
+        error = f"Comando excedeu timeout de 30s: {cmd[:60]}"
+        logger.error(error)
+        ExecutionLog.create(schedule["id"], "error", error, duration, "cron")
+        return duration, None, error
+    except Exception as e:
+        duration = int((time.time() - started) * 1000)
+        error = f"Erro ao executar comando: {e}"
+        logger.error(error)
+        ExecutionLog.create(schedule["id"], "error", error, duration, "cron")
+        return duration, None, error
+
+    duration = int((time.time() - started) * 1000)
+    stdout = result.stdout or ""
+    stderr = result.stderr or ""
+
+    body_parts = [f"<p><strong>Comando:</strong> <code>{cmd}</code></p>",
+                  f"<p><strong>Exit code:</strong> {result.returncode}</p>"]
+    if stdout:
+        body_parts.append(f"<h3>STDOUT</h3><pre style='background:#1a1a2e;color:#0f0;padding:10px;overflow-x:auto;'>{stdout}</pre>")
+    if stderr:
+        body_parts.append(f"<h3>STDERR</h3><pre style='background:#1a1a2e;color:#e94560;padding:10px;overflow-x:auto;'>{stderr}</pre>")
+
+    body = "\n".join(body_parts)
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    wrapped = EMAIL_WRAPPER_SIMPLE.format(date=now, body=body)
+
+    subject = f"[Scheduler] Comando: {cmd[:60]}"
+    status = "success" if result.returncode == 0 else "warning"
+    success, email_error = send_email(schedule["email_to"], subject, wrapped)
+    if not success:
+        logger.error("Command task falhou no email: %s", email_error)
+        ExecutionLog.create(schedule["id"], "error", f"Email: {email_error}", duration, "cron")
+        return duration, None, f"Falha ao enviar email: {email_error}"
+
+    logger.info("Command task OK: exit=%d %d chars em %dms", result.returncode, len(body), duration)
+    ExecutionLog.create(schedule["id"], status, None, duration, "cron")
+    Schedule.update_last_run(schedule["id"])
+    return duration, wrapped, None
+
 
 def run_schedule(schedule_id=None, prompt_id_override=None, email_to=None,
                  prompt_content=None, prompt_tone="infografico"):
     started = time.time()
-    logger.info("run_schedule iniciado schedule_id=%s tone=%s", schedule_id, prompt_tone)
 
     if schedule_id:
         schedule = Schedule.get_by_id(schedule_id)
@@ -25,11 +118,20 @@ def run_schedule(schedule_id=None, prompt_id_override=None, email_to=None,
             logger.error("Agendamento %s nao encontrado", schedule_id)
             return duration, None, "Agendamento não encontrado"
 
+        sched_type = schedule["schedule_type"] or "ai"
+        logger.info("run_schedule iniciado schedule_id=%s type=%s", schedule_id, sched_type)
+
+        if sched_type == "static":
+            return _run_static_task(schedule)
+
+        if sched_type == "command":
+            return _run_command_task(schedule)
+
         prompt_content = schedule["prompt_content"]
         prompt_tone = schedule["prompt_tone"]
         email_to = schedule["email_to"]
-        logger.info("Schedule carregado: email_to=%s prompt=%s...",
-                     email_to, prompt_content[:80] if prompt_content else "")
+    else:
+        logger.info("run_schedule iniciado manual tone=%s", prompt_tone)
 
     logger.info("Chamando DeepSeek API (search=True)...")
     result_html, error = call_deepseek(prompt_content, tone=prompt_tone, enable_search=True)

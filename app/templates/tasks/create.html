@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block header %}Nova Tarefa{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:700px;">
+    <h3>Criar Tarefa</h3>
+    <form method="POST">
+        <div class="form-group">
+            <label>Tipo de Tarefa</label>
+            <select name="task_type" id="task_type" required onchange="toggleTaskFields()">
+                <option value="static" selected>Conteudo Estatico</option>
+                <option value="command">Comando Linux</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Descricao</label>
+            <input type="text" name="description" required placeholder="Ex: Relatorio diario de disco">
+        </div>
+
+        <div class="form-group">
+            <label>Email Destino</label>
+            <input type="email" name="email_to" required placeholder="destino@email.com">
+        </div>
+
+        <label style="font-size:13px; color:var(--muted); margin-bottom:5px; display:block;">Construtor de Cron</label>
+        <div class="cron-builder">
+            <div class="form-group">
+                <label>Minuto</label>
+                <input type="text" name="minute" value="0" placeholder="0-59">
+            </div>
+            <div class="form-group">
+                <label>Hora</label>
+                <input type="text" name="hour" value="8" placeholder="0-23">
+            </div>
+            <div class="form-group">
+                <label>Dia</label>
+                <input type="text" name="day" value="*" placeholder="1-31">
+            </div>
+            <div class="form-group">
+                <label>Mes</label>
+                <input type="text" name="month" value="*" placeholder="1-12">
+            </div>
+            <div class="form-group">
+                <label>Dia Semana</label>
+                <input type="text" name="weekday" value="*" placeholder="0-6 (Dom=0)">
+            </div>
+        </div>
+
+        <div id="fields_static">
+            <div class="form-group">
+                <label>Assunto do Email</label>
+                <input type="text" name="static_subject" placeholder="Assunto do email">
+            </div>
+            <div class="form-group">
+                <label>
+                    Formato:
+                    <select name="static_is_html" id="static_is_html" style="width:auto;display:inline;margin-left:10px;">
+                        <option value="0">Texto Simples</option>
+                        <option value="1">HTML</option>
+                    </select>
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Conteudo</label>
+                <textarea name="static_content" rows="10" placeholder="<p>Seu conteudo aqui...</p>"></textarea>
+            </div>
+        </div>
+
+        <div id="fields_command" style="display:none;">
+            <div class="form-group">
+                <label>Comando Linux</label>
+                <textarea name="command_text" rows="4" placeholder="df -h"></textarea>
+                <small style="color:var(--red);">Aviso: o comando sera executado no container cron. Nao inclua senhas ou tokens. A saida sera enviada por email.</small>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="/tasks" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Criar Tarefa</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleTaskFields() {
+    var type = document.getElementById('task_type').value;
+    document.getElementById('fields_static').style.display = (type === 'static') ? 'block' : 'none';
+    document.getElementById('fields_command').style.display = (type === 'command') ? 'block' : 'none';
+}
+</script>
+{% endblock %}

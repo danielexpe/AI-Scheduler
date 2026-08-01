@@ -38,9 +38,11 @@ def create_app():
 
     from app.auth import auth_bp
     from app.routes import routes_bp
+    from app.tasks import tasks_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(routes_bp)
+    app.register_blueprint(tasks_bp)
 
     logger.info("Flask app criada com sucesso")
     return app
