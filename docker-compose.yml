@@ -9,7 +9,7 @@ services:
     environment:
       - CRON_MODE=docker
     volumes:
-      - scheduler_data:/app/data
+      - ./data:/app/data
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
 
@@ -21,7 +21,7 @@ services:
     environment:
       - CRON_MODE=docker
     volumes:
-      - scheduler_data:/app/data
+      - ./data:/app/data
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     entrypoint: ["/app/scripts/entrypoint-cron.sh"]
@@ -34,6 +34,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-
-volumes:
-  scheduler_data:

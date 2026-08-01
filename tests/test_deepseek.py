@@ -9,19 +9,41 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 class TestDeepSeekClient(unittest.TestCase):
 
-    @patch.dict(os.environ, {
-        "DEEPSEEK_API_KEY": "sk-test-key",
-        "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
-        "DEEPSEEK_MODEL": "deepseek-chat",
-        "DEEPSEEK_MAX_TOKENS": "4096",
-        "DEEPSEEK_TIMEOUT": "10",
-        "DEEPSEEK_MAX_RETRIES": "1",
-    })
+    @classmethod
+    def setUpClass(cls):
+        cls._saved_env = {}
+        for key in ("DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "DEEPSEEK_MODEL",
+                     "DEEPSEEK_MAX_TOKENS", "DEEPSEEK_TIMEOUT", "DEEPSEEK_MAX_RETRIES"):
+            cls._saved_env[key] = os.environ.get(key)
+
+    @classmethod
+    def tearDownClass(cls):
+        for key, orig_value in cls._saved_env.items():
+            if orig_value is not None:
+                os.environ[key] = orig_value
+            elif key in os.environ:
+                del os.environ[key]
+
     def setUp(self):
+        os.environ.update({
+            "DEEPSEEK_API_KEY": "sk-test-key",
+            "DEEPSEEK_BASE_URL": "https://api.deepseek.com",
+            "DEEPSEEK_MODEL": "deepseek-chat",
+            "DEEPSEEK_MAX_TOKENS": "4096",
+            "DEEPSEEK_TIMEOUT": "10",
+            "DEEPSEEK_MAX_RETRIES": "1",
+        })
         from importlib import reload
         import app.deepseek_client
         reload(app.deepseek_client)
         self.client = app.deepseek_client
+
+    def tearDown(self):
+        for key in self._saved_env:
+            if self._saved_env[key] is not None:
+                os.environ[key] = self._saved_env[key]
+            elif key in os.environ:
+                del os.environ[key]
 
     def test_api_key_not_configured(self):
         with patch.dict(os.environ, {}, clear=True):

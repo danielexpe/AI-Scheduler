@@ -75,6 +75,7 @@ def sync_all_schedules():
 
     if _is_docker():
         active = Schedule.get_active_schedules()
+        logger.info("Docker mode: %d schedules ativos encontrados", len(active))
         return {"added": 0, "removed": 0, "errors": [], "docker_mode": True,
                 "active_count": len(active)}
 
@@ -125,7 +126,7 @@ def get_cron_status():
         return [{
             "comment": f"AI_SCHEDULER:{s['id']} | {s['description']}",
             "schedule": s["cron_expr"],
-            "command": f"cd /app && python -m app.executor --schedule-id {s['id']}",
+            "command": f"/app/scripts/run_cron.sh {s['id']}",
             "enabled": True,
             "docker_mode": True,
         } for s in active]

@@ -5,12 +5,29 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
-DEEPSEEK_MAX_TOKENS = int(os.getenv("DEEPSEEK_MAX_TOKENS", "4096"))
-DEEPSEEK_TIMEOUT = int(os.getenv("DEEPSEEK_TIMEOUT", "120"))
-DEEPSEEK_MAX_RETRIES = int(os.getenv("DEEPSEEK_MAX_RETRIES", "2"))
+
+def _get_api_key():
+    return os.getenv("DEEPSEEK_API_KEY")
+
+
+def _get_base_url():
+    return os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+
+
+def _get_model():
+    return os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+
+
+def _get_max_tokens():
+    return int(os.getenv("DEEPSEEK_MAX_TOKENS", "4096"))
+
+
+def _get_timeout():
+    return int(os.getenv("DEEPSEEK_TIMEOUT", "120"))
+
+
+def _get_max_retries():
+    return int(os.getenv("DEEPSEEK_MAX_RETRIES", "2"))
 
 
 SYSTEM_PROMPT_BASE = """Você é um assistente que gera infográficos e resumos em HTML para email.
@@ -46,7 +63,9 @@ Cite as fontes no rodapé do infográfico.
 
 
 def call_deepseek(prompt_content, tone="infografico", enable_search=True):
-    if not DEEPSEEK_API_KEY:
+    api_key = _get_api_key()
+    if not api_key:
+        logger.error("DEEPSEEK_API_KEY nao configurada")
         return None, "DEEPSEEK_API_KEY não configurada no .env"
 
     tone_instruction = TONE_INSTRUCTIONS.get(tone, TONE_INSTRUCTIONS["infografico"])
@@ -57,47 +76,57 @@ def call_deepseek(prompt_content, tone="infografico", enable_search=True):
 
     user_prompt = f"Tópico: {prompt_content}\n\nGere o infográfico/relatório em HTML com CSS inline conforme as instruções."
 
+    logger.info("Chamando DeepSeek API: modelo=%s tone=%s search=%s prompt_len=%d",
+                 _get_model(), tone, enable_search, len(prompt_content))
+
     headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
     payload = {
-        "model": DEEPSEEK_MODEL,
+        "model": _get_model(),
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        "max_tokens": DEEPSEEK_MAX_TOKENS,
+        "max_tokens": _get_max_tokens(),
         "temperature": 0.7,
         "stream": False,
     }
 
+    max_retries = _get_max_retries()
     last_error = None
-    for attempt in range(DEEPSEEK_MAX_RETRIES + 1):
+    for attempt in range(max_retries + 1):
         try:
             if attempt > 0:
+                logger.warning("Retry %d/%d apos 5s...", attempt, max_retries)
                 time.sleep(5 * attempt)
 
+            logger.debug("POST %s/v1/chat/completions (attempt %d)", _get_base_url(), attempt + 1)
             response = requests.post(
-                f"{DEEPSEEK_BASE_URL}/v1/chat/completions",
+                f"{_get_base_url()}/v1/chat/completions",
                 headers=headers,
                 json=payload,
-                timeout=DEEPSEEK_TIMEOUT,
+                timeout=_get_timeout(),
             )
 
             if response.status_code == 401:
+                logger.error("DeepSeek retornou 401 - API Key invalida")
                 return None, "API Key inválida. Verifique DEEPSEEK_API_KEY."
             if response.status_code == 429:
                 last_error = "Rate limit. Tentando novamente..."
+                logger.warning("DeepSeek rate limit (429) - retrying...")
                 time.sleep(5)
                 continue
             if response.status_code != 200:
                 last_error = f"Erro API DeepSeek ({response.status_code}): {response.text[:200]}"
+                logger.error("DeepSeek status %d: %s", response.status_code, response.text[:200])
                 continue
 
             data = response.json()
             content = data["choices"][0]["message"]["content"]
+            logger.info("DeepSeek respondeu com %d chars", len(content))
 
             if content.startswith("```html"):
                 content = content[7:]
@@ -111,12 +140,16 @@ def call_deepseek(prompt_content, tone="infografico", enable_search=True):
 
         except requests.exceptions.Timeout:
             last_error = "Timeout ao conectar com DeepSeek API"
+            logger.warning("DeepSeek timeout (attempt %d)", attempt + 1)
             continue
         except requests.exceptions.ConnectionError:
             last_error = "Erro de conexão com DeepSeek API"
+            logger.warning("DeepSeek connection error (attempt %d)", attempt + 1)
             continue
         except Exception as e:
             last_error = str(e)
+            logger.error("DeepSeek excecao inesperada: %s", e)
             continue
 
+    logger.error("DeepSeek todas as %d tentativas falharam: %s", max_retries + 1, last_error)
     return None, last_error or "Erro desconhecido"

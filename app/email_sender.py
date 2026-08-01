@@ -8,11 +8,25 @@ from email.mime.multipart import MIMEMultipart
 
 logger = logging.getLogger(__name__)
 
-GMAIL_USER = os.getenv("GMAIL_USER")
-GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "AI Mail Scheduler")
+
+def _get_gmail_user():
+    return os.getenv("GMAIL_USER")
+
+
+def _get_gmail_password():
+    return os.getenv("GMAIL_APP_PASSWORD")
+
+
+def _get_smtp_server():
+    return os.getenv("SMTP_SERVER", "smtp.gmail.com")
+
+
+def _get_smtp_port():
+    return int(os.getenv("SMTP_PORT", "587"))
+
+
+def _get_email_from_name():
+    return os.getenv("EMAIL_FROM_NAME", "AI Mail Scheduler")
 
 
 def is_valid_email(email):
@@ -62,10 +76,18 @@ EMAIL_WRAPPER = """<!DOCTYPE html>
 
 
 def send_email(to_email, subject, html_body):
-    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+    gmail_user = _get_gmail_user()
+    gmail_password = _get_gmail_password()
+    smtp_server = _get_smtp_server()
+    smtp_port = _get_smtp_port()
+    email_from_name = _get_email_from_name()
+
+    if not gmail_user or not gmail_password:
+        logger.error("Credenciais Gmail nao configuradas")
         return False, "GMAIL_USER ou GMAIL_APP_PASSWORD não configurados no .env"
 
     if not is_valid_email(to_email):
+        logger.error("Email destino invalido: %s", to_email)
         return False, f"Email destino inválido: {to_email}"
 
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -77,35 +99,45 @@ def send_email(to_email, subject, html_body):
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = f"{EMAIL_FROM_NAME} <{GMAIL_USER}>"
+    msg["From"] = f"{email_from_name} <{gmail_user}>"
     msg["To"] = to_email
 
     html_part = MIMEText(wrapped_html, "html", "utf-8")
     msg.attach(html_part)
 
+    logger.info("Enviando email para %s (assunto: %s, body: %d chars)",
+                 to_email, subject, len(html_body))
+
     last_error = None
     for attempt in range(3):
         try:
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30) as server:
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
                 server.starttls()
-                server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+                server.login(gmail_user, gmail_password)
                 server.send_message(msg)
+                logger.info("Email enviado com sucesso para %s (attempt %d)", to_email, attempt + 1)
                 return True, None
         except smtplib.SMTPAuthenticationError:
+            logger.error("Falha de autenticacao SMTP")
             return False, "Falha de autenticação SMTP. Verifique GMAIL_APP_PASSWORD."
         except smtplib.SMTPServerDisconnected:
             last_error = "Servidor SMTP desconectou"
+            logger.warning("SMTP desconectou (attempt %d)", attempt + 1)
             if attempt < 2:
                 import time
                 time.sleep(10)
         except smtplib.SMTPDataError as e:
+            logger.error("Erro de dados SMTP: %s", e)
             return False, f"Erro de dados SMTP: {e}"
         except smtplib.SMTPRecipientsRefused:
+            logger.error("Email destino recusado: %s", to_email)
             return False, f"Email destino recusado: {to_email}"
         except Exception as e:
             last_error = str(e)
+            logger.error("Excecao SMTP (attempt %d): %s", attempt + 1, e)
             if attempt < 2:
                 import time
                 time.sleep(5)
 
+    logger.error("Todas as tentativas de envio falharam: %s", last_error)
     return False, last_error or "Erro desconhecido ao enviar email"

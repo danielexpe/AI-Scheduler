@@ -60,18 +60,40 @@ class TestEmailWrapper(unittest.TestCase):
 
 class TestEmailSending(unittest.TestCase):
 
-    @patch.dict(os.environ, {
-        "GMAIL_USER": "test@gmail.com",
-        "GMAIL_APP_PASSWORD": "test-app-password-16ch",
-        "SMTP_SERVER": "smtp.gmail.com",
-        "SMTP_PORT": "587",
-        "EMAIL_FROM_NAME": "Test Scheduler",
-    })
+    @classmethod
+    def setUpClass(cls):
+        cls._saved_env = {}
+        for key in ("GMAIL_USER", "GMAIL_APP_PASSWORD", "SMTP_SERVER",
+                     "SMTP_PORT", "EMAIL_FROM_NAME"):
+            cls._saved_env[key] = os.environ.get(key)
+
+    @classmethod
+    def tearDownClass(cls):
+        for key, orig_value in cls._saved_env.items():
+            if orig_value is not None:
+                os.environ[key] = orig_value
+            elif key in os.environ:
+                del os.environ[key]
+
     def setUp(self):
+        os.environ.update({
+            "GMAIL_USER": "test@gmail.com",
+            "GMAIL_APP_PASSWORD": "test-app-password-16ch",
+            "SMTP_SERVER": "smtp.gmail.com",
+            "SMTP_PORT": "587",
+            "EMAIL_FROM_NAME": "Test Scheduler",
+        })
         from importlib import reload
         import app.email_sender
         reload(app.email_sender)
         self.email_module = app.email_sender
+
+    def tearDown(self):
+        for key in self._saved_env:
+            if self._saved_env[key] is not None:
+                os.environ[key] = self._saved_env[key]
+            elif key in os.environ:
+                del os.environ[key]
 
     @patch("app.email_sender.smtplib.SMTP")
     def test_send_email_success(self, mock_smtp_class):

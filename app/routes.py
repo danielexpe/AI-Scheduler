@@ -2,8 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.models import Prompt, Schedule, ExecutionLog, query
 from app.executor import run_schedule
+import logging
 
 routes_bp = Blueprint("routes", __name__)
+logger = logging.getLogger(__name__)
 
 
 @routes_bp.route("/")
@@ -88,6 +90,7 @@ def prompts_run(prompt_id):
         flash("Informe um email de destino.", "error")
         return redirect(url_for("routes.prompts_list"))
 
+    logger.info("Execucao manual: prompt_id=%d email=%s", prompt_id, email_to)
     duration, result_html, error = run_schedule(None, prompt_id, email_to, prompt["content"], prompt["tone"])
     ExecutionLog.create(
         schedule_id=0,
@@ -98,8 +101,10 @@ def prompts_run(prompt_id):
     )
 
     if result_html:
+        logger.info("Execucao manual OK: prompt_id=%d duracao=%dms", prompt_id, duration)
         flash("Execução concluída. Verifique seu email.", "success")
     else:
+        logger.error("Execucao manual FALHOU: prompt_id=%d erro=%s", prompt_id, error)
         flash(f"Erro na execução: {error}", "error")
 
     return redirect(url_for("routes.prompts_list"))
@@ -134,6 +139,7 @@ def schedules_create():
             flash("Prompt, email e descrição são obrigatórios.", "error")
         else:
             sid = Schedule.create(prompt_id, cron_expr, description, email_to)
+            logger.info("Schedule criado: id=%d prompt=%d cron='%s' email=%s", sid, prompt_id, cron_expr, email_to)
             try:
                 from app.cron_manager import add_cron_job
                 add_cron_job(sid, cron_expr, description)
