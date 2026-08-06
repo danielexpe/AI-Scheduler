@@ -34,6 +34,21 @@
                 <option value="0" {% if not prompt.active %}selected{% endif %}>Não</option>
             </select>
         </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="enable_search" value="1"
+                       {% if prompt.enable_search %}checked{% endif %}>
+                Ativar busca web antes do DeepSeek
+            </label>
+            <small style="color:var(--muted);display:block;margin-left:24px;">Busca notícias atualizadas e envia como contexto ao modelo</small>
+        </div>
+        <div class="form-group">
+            <label>Resultados da busca</label>
+            <input type="number" name="search_max_results"
+                   value="{{ prompt.search_max_results or 5 }}" min="1" max="20"
+                   style="width:80px;">
+            <small style="color:var(--muted);">Quantidade de resultados (1-20)</small>
+        </div>
         <div class="actions">
             <button type="submit" class="btn btn-primary">Salvar</button>
             <a href="/prompts" class="btn btn-secondary">Cancelar</a>

@@ -7,7 +7,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from app.models import Schedule, ExecutionLog
+from app.models import Schedule, ExecutionLog, Prompt
 from app.deepseek_client import call_deepseek
 from app.email_sender import send_email
 
@@ -134,7 +134,34 @@ def run_schedule(schedule_id=None, prompt_id_override=None, email_to=None,
         logger.info("run_schedule iniciado manual tone=%s", prompt_tone)
 
     logger.info("Chamando DeepSeek API (search=True)...")
-    result_html, error = call_deepseek(prompt_content, tone=prompt_tone, enable_search=True)
+
+    enable_search = True
+    search_max_results = 5
+    if schedule_id and schedule:
+        enable_search = bool(schedule["enable_search"]) if schedule["enable_search"] is not None else True
+        search_max_results = schedule["search_max_results"] or 5
+    elif prompt_id_override:
+        prompt_row = Prompt.get_by_id(prompt_id_override)
+        if prompt_row:
+            enable_search = bool(prompt_row["enable_search"]) if prompt_row["enable_search"] is not None else True
+            search_max_results = prompt_row["search_max_results"] or 5
+
+    user_prompt = f"Topico: {prompt_content}\n\nGere o infografico/relatorio em HTML com CSS inline conforme as instrucoes."
+
+    if enable_search:
+        try:
+            from app.search_client import web_search
+            search_query = schedule.get("prompt_title", prompt_content) if schedule_id else prompt_content
+            context = web_search(search_query, max_results=search_max_results)
+            if context:
+                user_prompt = context + "\n\n" + user_prompt
+                logger.info("Busca web adicionou %d chars de contexto ao prompt", len(context))
+            else:
+                logger.warning("Busca web nao retornou resultados, seguindo sem contexto extra")
+        except Exception as e:
+            logger.warning("Erro na busca web: %s. Seguindo sem contexto extra.", e)
+
+    result_html, error = call_deepseek(user_prompt, tone=prompt_tone, enable_search=True)
     duration = int((time.time() - started) * 1000)
 
     if error:

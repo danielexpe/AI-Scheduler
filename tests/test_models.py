@@ -58,6 +58,8 @@ class TestModelsBase(unittest.TestCase):
                 title TEXT NOT NULL, content TEXT NOT NULL,
                 tone TEXT DEFAULT 'infografico', format TEXT DEFAULT 'html',
                 active BOOLEAN DEFAULT 1,
+                enable_search BOOLEAN DEFAULT 1,
+                search_max_results INTEGER DEFAULT 5,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS schedules (

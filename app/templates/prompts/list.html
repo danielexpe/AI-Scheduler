@@ -17,6 +17,7 @@
             <tr>
                 <th>Título</th>
                 <th>Tom</th>
+                <th>Busca</th>
                 <th>Ativo</th>
                 <th>Criado em</th>
                 <th>Ações</th>
@@ -27,6 +28,11 @@
             <tr>
                 <td data-label="Título">{{ prompt.title }}</td>
                 <td data-label="Tom"><span class="badge badge-info">{{ prompt.tone }}</span></td>
+                <td data-label="Busca">
+                    <span class="badge badge-{{ 'success' if prompt.enable_search else 'muted' }}">
+                        {{ 'On' if prompt.enable_search else 'Off' }}
+                    </span>
+                </td>
                 <td data-label="Ativo">
                     <span class="badge badge-{{ 'success' if prompt.active else 'error' }}">
                         {{ 'Ativo' if prompt.active else 'Inativo' }}

@@ -51,6 +51,8 @@ def init_db(app):
             tone TEXT DEFAULT 'infografico',
             format TEXT DEFAULT 'html',
             active BOOLEAN DEFAULT 1,
+            enable_search BOOLEAN DEFAULT 1,
+            search_max_results INTEGER DEFAULT 5,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
@@ -109,6 +111,15 @@ def init_db(app):
         pass
     try:
         conn.execute("ALTER TABLE schedules ADD COLUMN command_text TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        conn.execute("ALTER TABLE prompts ADD COLUMN enable_search BOOLEAN DEFAULT 1")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE prompts ADD COLUMN search_max_results INTEGER DEFAULT 5")
     except sqlite3.OperationalError:
         pass
 
@@ -186,19 +197,24 @@ class Prompt:
         return query("SELECT * FROM prompts WHERE id = ?", (prompt_id,), one=True)
 
     @staticmethod
-    def create(title, content, tone="infografico", fmt="html", active=1):
+    def create(title, content, tone="infografico", fmt="html", active=1,
+               enable_search=1, search_max_results=5):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return execute(
-            "INSERT INTO prompts (title, content, tone, format, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (title, content, tone, fmt, active, now, now)
+            "INSERT INTO prompts (title, content, tone, format, active, enable_search, search_max_results, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (title, content, tone, fmt, active, enable_search, search_max_results, now, now)
         )
 
     @staticmethod
-    def update(prompt_id, title, content, tone, fmt, active):
+    def update(prompt_id, title, content, tone, fmt, active,
+               enable_search=None, search_max_results=None):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         execute(
-            "UPDATE prompts SET title=?, content=?, tone=?, format=?, active=?, updated_at=? WHERE id=?",
-            (title, content, tone, fmt, active, now, prompt_id)
+            "UPDATE prompts SET title=?, content=?, tone=?, format=?, active=?,"
+            " enable_search=COALESCE(?, enable_search),"
+            " search_max_results=COALESCE(?, search_max_results),"
+            " updated_at=? WHERE id=?",
+            (title, content, tone, fmt, active, enable_search, search_max_results, now, prompt_id)
         )
 
     @staticmethod
@@ -224,7 +240,8 @@ class Schedule:
     def get_by_id(schedule_id):
         return query("""
             SELECT s.*, p.title as prompt_title, p.content as prompt_content,
-                   p.tone as prompt_tone, p.format as prompt_format
+                   p.tone as prompt_tone, p.format as prompt_format,
+                   p.enable_search, p.search_max_results
             FROM schedules s
             LEFT JOIN prompts p ON s.prompt_id = p.id
             WHERE s.id = ?
@@ -306,7 +323,8 @@ class Schedule:
     def get_active_schedules():
         return query("""
             SELECT s.*, p.title as prompt_title, p.content as prompt_content,
-                   p.tone as prompt_tone, p.format as prompt_format
+                   p.tone as prompt_tone, p.format as prompt_format,
+                   p.enable_search, p.search_max_results
             FROM schedules s
             LEFT JOIN prompts p ON s.prompt_id = p.id
             WHERE s.active = 1

@@ -28,6 +28,18 @@
                 <option value="html">HTML (email)</option>
             </select>
         </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="enable_search" value="1" checked>
+                Ativar busca web antes do DeepSeek
+            </label>
+            <small style="color:var(--muted);display:block;margin-left:24px;">Busca notícias atualizadas e envia como contexto ao modelo</small>
+        </div>
+        <div class="form-group">
+            <label>Resultados da busca</label>
+            <input type="number" name="search_max_results" value="5" min="1" max="20" style="width:80px;">
+            <small style="color:var(--muted);">Quantidade de resultados (1-20)</small>
+        </div>
         <div class="actions">
             <button type="submit" class="btn btn-primary">Salvar</button>
             <a href="/prompts" class="btn btn-secondary">Cancelar</a>
