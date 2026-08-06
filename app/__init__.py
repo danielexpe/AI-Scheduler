@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,6 +13,7 @@ login_manager = LoginManager()
 def create_app():
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "dev-secret-change-me")
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 
     data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
     os.makedirs(data_dir, exist_ok=True)

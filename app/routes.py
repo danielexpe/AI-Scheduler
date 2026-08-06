@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_required, current_user
 from app.models import Prompt, Schedule, ExecutionLog, query
 from app.executor import run_schedule
@@ -233,6 +233,17 @@ def logs_list():
     schedule_id = request.args.get("schedule_id", type=int)
     logs = ExecutionLog.get_recent(limit=50, schedule_id=schedule_id)
     return render_template("logs/list.html", logs=logs)
+
+
+# --- Theme ---
+
+@routes_bp.route("/theme/toggle", methods=["POST"])
+def theme_toggle():
+    current = session.get("theme", "default")
+    session["theme"] = "cyberpunk" if current == "default" else "default"
+    session.permanent = True
+    next_url = request.form.get("next") or request.referrer or url_for("routes.dashboard")
+    return redirect(next_url)
 
 
 # --- Cron ---

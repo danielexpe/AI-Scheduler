@@ -24,6 +24,22 @@
             --header-height: 56px;
         }
 
+        [data-theme="cyberpunk"] {
+            --bg: #0c0c1d;
+            --card: #141428;
+            --accent: #2d1b69;
+            --text: #e0e8ff;
+            --muted: #6a6a9f;
+            --red: #ff00ff;
+            --green: #00ffcc;
+            --yellow: #ffdd00;
+            --border: rgba(255, 0, 255, 0.15);
+            --radius: 2px;
+            --radius-sm: 2px;
+            --shadow: 0 0 12px rgba(255, 0, 255, 0.15);
+            --shadow-lg: 0 0 24px rgba(255, 0, 255, 0.25);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
@@ -484,10 +500,171 @@
             }
         }
 
+        [data-theme="cyberpunk"] body::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 9999;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.03) 2px,
+                rgba(0, 0, 0, 0.03) 4px
+            );
+        }
+
+        [data-theme="cyberpunk"] h1,
+        [data-theme="cyberpunk"] h2,
+        [data-theme="cyberpunk"] h3 {
+            text-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
+        }
+
+        [data-theme="cyberpunk"] .header h1 {
+            text-shadow: 0 0 12px rgba(255, 0, 255, 0.5);
+        }
+
+        [data-theme="cyberpunk"] .card {
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow), inset 0 0 30px rgba(255, 0, 255, 0.02);
+        }
+
+        [data-theme="cyberpunk"] .stat-card:hover {
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.25);
+        }
+
+        [data-theme="cyberpunk"] tr:hover td {
+            background: rgba(255, 0, 255, 0.05);
+        }
+
+        [data-theme="cyberpunk"] .btn-primary {
+            box-shadow: 0 0 12px rgba(255, 0, 255, 0.3);
+        }
+        [data-theme="cyberpunk"] .btn-primary:hover {
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+        }
+        [data-theme="cyberpunk"] .btn-success {
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.3);
+        }
+        [data-theme="cyberpunk"] .btn-success:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+        }
+        [data-theme="cyberpunk"] .btn-danger:hover {
+            box-shadow: 0 0 12px rgba(255, 0, 255, 0.3);
+        }
+
+        [data-theme="cyberpunk"] .badge-success {
+            background: rgba(0, 255, 204, 0.15);
+        }
+        [data-theme="cyberpunk"] .badge-error {
+            background: rgba(255, 0, 255, 0.15);
+        }
+        [data-theme="cyberpunk"] .badge-info {
+            background: rgba(45, 27, 105, 0.5);
+        }
+        [data-theme="cyberpunk"] .badge-muted {
+            background: rgba(106, 106, 159, 0.2);
+            color: var(--muted);
+        }
+
+        [data-theme="cyberpunk"] .alert-success {
+            background: rgba(0, 255, 204, 0.12);
+            border: 1px solid rgba(0, 255, 204, 0.25);
+        }
+        [data-theme="cyberpunk"] .alert-error {
+            background: rgba(255, 0, 255, 0.1);
+            border: 1px solid rgba(255, 0, 255, 0.25);
+        }
+        [data-theme="cyberpunk"] .alert-info {
+            background: rgba(45, 27, 105, 0.3);
+        }
+        [data-theme="cyberpunk"] .alert-warning {
+            background: rgba(255, 221, 0, 0.1);
+            border: 1px solid rgba(255, 221, 0, 0.25);
+        }
+
+        [data-theme="cyberpunk"] input:focus,
+        [data-theme="cyberpunk"] select:focus,
+        [data-theme="cyberpunk"] textarea:focus {
+            outline: none;
+            border-color: #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+        }
+
+        [data-theme="cyberpunk"] input:checked + .toggle-slider {
+            background: var(--green);
+        }
+        [data-theme="cyberpunk"] .toggle-slider::before {
+            background: #ff00ff;
+            box-shadow: 0 0 8px rgba(255, 0, 255, 0.6);
+        }
+        [data-theme="cyberpunk"] input:checked + .toggle-slider::before {
+            background: #00ffcc;
+            box-shadow: 0 0 8px rgba(0, 255, 204, 0.6);
+        }
+
+        [data-theme="cyberpunk"] .sidebar {
+            border-right: 1px solid rgba(255, 0, 255, 0.2);
+            box-shadow: 2px 0 20px rgba(255, 0, 255, 0.08);
+        }
+        [data-theme="cyberpunk"] .sidebar h2 {
+            text-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+            border-bottom-color: rgba(255, 0, 255, 0.2);
+        }
+        [data-theme="cyberpunk"] .sidebar nav a:hover,
+        [data-theme="cyberpunk"] .sidebar nav a.active {
+            text-shadow: 0 0 8px rgba(255, 0, 255, 0.4);
+        }
+
+        [data-theme="cyberpunk"] .login-box h2 {
+            text-shadow: 0 0 18px rgba(255, 0, 255, 0.5);
+        }
+
+        .theme-toggle {
+            position: absolute;
+            bottom: 16px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 12px 0 8px;
+            border-top: 1px solid var(--border);
+        }
+        .theme-toggle-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 18px;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .theme-toggle-btn:hover {
+            color: var(--red);
+            border-color: var(--red);
+            box-shadow: 0 0 12px rgba(255, 0, 255, 0.15);
+        }
+        [data-theme="cyberpunk"] .theme-toggle-btn:hover {
+            color: #ff00ff;
+            border-color: #ff00ff;
+            box-shadow: 0 0 18px rgba(255, 0, 255, 0.3);
+        }
+
+        .badge-muted {
+            background: rgba(106, 106, 159, 0.2);
+            color: var(--muted);
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
         {% block extra_css %}{% endblock %}
     </style>
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}" data-theme="{{ session.get('theme', 'default') }}">
     {% if request.path.startswith('/auth') %}
         {% block auth_content %}{% endblock %}
     {% else %}
@@ -508,6 +685,18 @@
                 <a href="/logs" class="{% if request.path.startswith('/logs') %}active{% endif %}">Logs</a>
                 <a href="/cron/status" class="{% if request.path.startswith('/cron') %}active{% endif %}">Cron</a>
             </nav>
+            <div class="theme-toggle">
+                <form method="POST" action="/theme/toggle">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" class="theme-toggle-btn" title="Alternar tema">
+                        {% if session.get('theme') == 'cyberpunk' %}
+                        &#9889;
+                        {% else %}
+                        &#128261;
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
         </aside>
 
         <main class="main">
