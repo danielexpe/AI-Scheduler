@@ -60,6 +60,7 @@ class TestModelsBase(unittest.TestCase):
                 active BOOLEAN DEFAULT 1,
                 enable_search BOOLEAN DEFAULT 1,
                 search_max_results INTEGER DEFAULT 5,
+                debug_mode BOOLEAN DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS schedules (

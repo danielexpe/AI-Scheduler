@@ -35,12 +35,14 @@ def prompts_create():
         fmt = request.form.get("format", "html")
         enable_search = 1 if request.form.get("enable_search") == "1" else 0
         search_max_results = int(request.form.get("search_max_results", "5"))
+        debug_mode = 1 if request.form.get("debug_mode") == "1" else 0
 
         if not title or not content:
             flash("Título e conteúdo são obrigatórios.", "error")
         else:
             Prompt.create(title, content, tone, fmt, active=1,
-                          enable_search=enable_search, search_max_results=search_max_results)
+                          enable_search=enable_search, search_max_results=search_max_results,
+                          debug_mode=debug_mode)
             flash("Prompt criado com sucesso.", "success")
             return redirect(url_for("routes.prompts_list"))
 
@@ -63,12 +65,14 @@ def prompts_edit(prompt_id):
         active = 1 if request.form.get("active") == "1" else 0
         enable_search = 1 if request.form.get("enable_search") == "1" else 0
         search_max_results = int(request.form.get("search_max_results", "5"))
+        debug_mode = 1 if request.form.get("debug_mode") == "1" else 0
 
         if not title or not content:
             flash("Título e conteúdo são obrigatórios.", "error")
         else:
             Prompt.update(prompt_id, title, content, tone, fmt, active,
-                          enable_search=enable_search, search_max_results=search_max_results)
+                          enable_search=enable_search, search_max_results=search_max_results,
+                          debug_mode=debug_mode)
             flash("Prompt atualizado com sucesso.", "success")
             return redirect(url_for("routes.prompts_list"))
 

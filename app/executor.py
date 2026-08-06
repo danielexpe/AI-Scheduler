@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import re
 import logging
 import subprocess
 from datetime import datetime
@@ -107,6 +108,31 @@ def _run_command_task(schedule):
     return duration, wrapped, None
 
 
+def _build_debug_section(system_prompt, user_prompt, model, tone,
+                          search_info, duration_ms):
+    timestamp = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    debug_html = f"""<hr>
+<pre>
+=== DEBUG - Trilha do Prompt ===
+
+Modelo: {model}
+Tom/Estilo: {tone}
+Busca Web: {search_info}
+Modo Debug: Ativado
+Duracao: {duration_ms}ms
+Timestamp: {timestamp}
+
+--- System Prompt ({len(system_prompt)} caracteres) ---
+{system_prompt}
+
+--- User Prompt ({len(user_prompt)} caracteres) ---
+{user_prompt}
+
+=== FIM DEBUG ===
+</pre>"""
+    return debug_html
+
+
 def run_schedule(schedule_id=None, prompt_id_override=None, email_to=None,
                  prompt_content=None, prompt_tone="infografico"):
     started = time.time()
@@ -129,39 +155,55 @@ def run_schedule(schedule_id=None, prompt_id_override=None, email_to=None,
 
         prompt_content = schedule["prompt_content"]
         prompt_tone = schedule["prompt_tone"]
+        prompt_title = schedule["prompt_title"] or prompt_content[:80]
         email_to = schedule["email_to"]
     else:
+        prompt_title = prompt_content[:80] if prompt_content else "Execucao Manual"
         logger.info("run_schedule iniciado manual tone=%s", prompt_tone)
 
     logger.info("Chamando DeepSeek API (search=True)...")
 
     enable_search = True
     search_max_results = 5
+    debug_mode = False
     if schedule_id and schedule:
         enable_search = bool(schedule["enable_search"]) if schedule["enable_search"] is not None else True
         search_max_results = schedule["search_max_results"] or 5
+        debug_mode = bool(schedule["debug_mode"]) if schedule["debug_mode"] is not None else False
     elif prompt_id_override:
         prompt_row = Prompt.get_by_id(prompt_id_override)
         if prompt_row:
             enable_search = bool(prompt_row["enable_search"]) if prompt_row["enable_search"] is not None else True
             search_max_results = prompt_row["search_max_results"] or 5
+            debug_mode = bool(prompt_row["debug_mode"]) if prompt_row["debug_mode"] is not None else False
+            if not schedule_id:
+                prompt_title = prompt_row["title"]
 
     user_prompt = f"Topico: {prompt_content}\n\nGere o infografico/relatorio em HTML com CSS inline conforme as instrucoes."
 
+    search_used = False
+    search_result_count = 0
     if enable_search:
+        if schedule_id and schedule:
+            search_query = schedule["prompt_title"] or prompt_content
+        else:
+            search_query = prompt_content
         try:
             from app.search_client import web_search
-            search_query = schedule.get("prompt_title", prompt_content) if schedule_id else prompt_content
             context = web_search(search_query, max_results=search_max_results)
             if context:
                 user_prompt = context + "\n\n" + user_prompt
+                search_used = True
+                search_result_count = context.count("Titulo:")
                 logger.info("Busca web adicionou %d chars de contexto ao prompt", len(context))
             else:
                 logger.warning("Busca web nao retornou resultados, seguindo sem contexto extra")
         except Exception as e:
             logger.warning("Erro na busca web: %s. Seguindo sem contexto extra.", e)
 
-    result_html, error = call_deepseek(user_prompt, tone=prompt_tone, enable_search=True)
+    user_prompt_final = user_prompt
+
+    result_html, error = call_deepseek(user_prompt, tone=prompt_tone, enable_search=enable_search)
     duration = int((time.time() - started) * 1000)
 
     if error:
@@ -187,7 +229,41 @@ def run_schedule(schedule_id=None, prompt_id_override=None, email_to=None,
     logger.info("DeepSeek OK - %d chars em %dms. Enviando email para %s...",
                  len(result_html), duration, email_to)
 
-    subject = f"[Scheduler] {prompt_content[:60]} - {datetime.now().strftime('%d/%m/%Y')}"
+    if debug_mode and result_html:
+        try:
+            from app.deepseek_client import SYSTEM_PROMPT_BASE, TONE_INSTRUCTIONS, SEARCH_INSTRUCTION, _get_model
+
+            tone_instruction = TONE_INSTRUCTIONS.get(prompt_tone, TONE_INSTRUCTIONS["infografico"])
+            full_system_prompt = SYSTEM_PROMPT_BASE + "\n\nEstilo solicitado: " + tone_instruction
+            if enable_search:
+                full_system_prompt += "\n\n" + SEARCH_INSTRUCTION
+
+            if search_used:
+                search_label = f"Ativada (Tavily/DuckDuckGo, {search_result_count} resultados)"
+            elif enable_search:
+                search_label = "Ativada (sem resultados)"
+            else:
+                search_label = "Desativada"
+
+            debug_html = _build_debug_section(
+                system_prompt=full_system_prompt,
+                user_prompt=user_prompt_final,
+                model=_get_model(),
+                tone=prompt_tone,
+                search_info=search_label,
+                duration_ms=duration,
+            )
+
+            stripped = re.sub(r'</body>\s*</html>\s*$', '', result_html, flags=re.IGNORECASE)
+            body_match = re.search(r'<body[^>]*>', stripped, re.IGNORECASE)
+            if body_match:
+                stripped = stripped[body_match.end():]
+            result_html = stripped + debug_html + '\n</body>\n</html>'
+            logger.info("Modo debug: adicionada secao de %d chars ao email", len(debug_html))
+        except Exception as e:
+            logger.warning("Erro ao gerar secao debug: %s", e)
+
+    subject = f"[Scheduler] {prompt_title[:80]} - {datetime.now().strftime('%d/%m/%Y')}"
 
     success, email_error = send_email(email_to, subject, result_html)
     if not success:

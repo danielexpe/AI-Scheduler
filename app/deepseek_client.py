@@ -74,7 +74,7 @@ def call_deepseek(prompt_content, tone="infografico", enable_search=True):
     if enable_search:
         system_prompt += "\n\n" + SEARCH_INSTRUCTION
 
-    user_prompt = f"Tópico: {prompt_content}\n\nGere o infográfico/relatório em HTML com CSS inline conforme as instruções."
+    user_prompt = prompt_content
 
     logger.info("Chamando DeepSeek API: modelo=%s tone=%s search=%s prompt_len=%d",
                  _get_model(), tone, enable_search, len(prompt_content))

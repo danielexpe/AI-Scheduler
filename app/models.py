@@ -53,6 +53,7 @@ def init_db(app):
             active BOOLEAN DEFAULT 1,
             enable_search BOOLEAN DEFAULT 1,
             search_max_results INTEGER DEFAULT 5,
+            debug_mode BOOLEAN DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
@@ -120,6 +121,11 @@ def init_db(app):
         pass
     try:
         conn.execute("ALTER TABLE prompts ADD COLUMN search_max_results INTEGER DEFAULT 5")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        conn.execute("ALTER TABLE prompts ADD COLUMN debug_mode BOOLEAN DEFAULT 0")
     except sqlite3.OperationalError:
         pass
 
@@ -198,23 +204,24 @@ class Prompt:
 
     @staticmethod
     def create(title, content, tone="infografico", fmt="html", active=1,
-               enable_search=1, search_max_results=5):
+               enable_search=1, search_max_results=5, debug_mode=0):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return execute(
-            "INSERT INTO prompts (title, content, tone, format, active, enable_search, search_max_results, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (title, content, tone, fmt, active, enable_search, search_max_results, now, now)
+            "INSERT INTO prompts (title, content, tone, format, active, enable_search, search_max_results, debug_mode, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (title, content, tone, fmt, active, enable_search, search_max_results, debug_mode, now, now)
         )
 
     @staticmethod
     def update(prompt_id, title, content, tone, fmt, active,
-               enable_search=None, search_max_results=None):
+               enable_search=None, search_max_results=None, debug_mode=None):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         execute(
             "UPDATE prompts SET title=?, content=?, tone=?, format=?, active=?,"
             " enable_search=COALESCE(?, enable_search),"
             " search_max_results=COALESCE(?, search_max_results),"
+            " debug_mode=COALESCE(?, debug_mode),"
             " updated_at=? WHERE id=?",
-            (title, content, tone, fmt, active, enable_search, search_max_results, now, prompt_id)
+            (title, content, tone, fmt, active, enable_search, search_max_results, debug_mode, now, prompt_id)
         )
 
     @staticmethod
@@ -241,7 +248,7 @@ class Schedule:
         return query("""
             SELECT s.*, p.title as prompt_title, p.content as prompt_content,
                    p.tone as prompt_tone, p.format as prompt_format,
-                   p.enable_search, p.search_max_results
+                   p.enable_search, p.search_max_results, p.debug_mode
             FROM schedules s
             LEFT JOIN prompts p ON s.prompt_id = p.id
             WHERE s.id = ?
@@ -324,7 +331,7 @@ class Schedule:
         return query("""
             SELECT s.*, p.title as prompt_title, p.content as prompt_content,
                    p.tone as prompt_tone, p.format as prompt_format,
-                   p.enable_search, p.search_max_results
+                   p.enable_search, p.search_max_results, p.debug_mode
             FROM schedules s
             LEFT JOIN prompts p ON s.prompt_id = p.id
             WHERE s.active = 1

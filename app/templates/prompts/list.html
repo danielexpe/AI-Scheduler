@@ -18,6 +18,7 @@
                 <th>Título</th>
                 <th>Tom</th>
                 <th>Busca</th>
+                <th>Debug</th>
                 <th>Ativo</th>
                 <th>Criado em</th>
                 <th>Ações</th>
@@ -31,6 +32,11 @@
                 <td data-label="Busca">
                     <span class="badge badge-{{ 'success' if prompt.enable_search else 'muted' }}">
                         {{ 'On' if prompt.enable_search else 'Off' }}
+                    </span>
+                </td>
+                <td data-label="Debug">
+                    <span class="badge badge-{{ 'error' if prompt.debug_mode else 'muted' }}">
+                        {{ 'On' if prompt.debug_mode else 'Off' }}
                     </span>
                 </td>
                 <td data-label="Ativo">

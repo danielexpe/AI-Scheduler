@@ -49,6 +49,14 @@
                    style="width:80px;">
             <small style="color:var(--muted);">Quantidade de resultados (1-20)</small>
         </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="debug_mode" value="1"
+                       {% if prompt.debug_mode %}checked{% endif %}>
+                Ativar modo debug
+            </label>
+            <small style="color:var(--muted);display:block;margin-left:24px;">Inclui a trilha completa do prompt no email (system + user prompt)</small>
+        </div>
         <div class="actions">
             <button type="submit" class="btn btn-primary">Salvar</button>
             <a href="/prompts" class="btn btn-secondary">Cancelar</a>
